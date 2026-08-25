@@ -8,8 +8,9 @@ import os
 import sys
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(_REPO_ROOT, "veros"))
-sys.path.insert(0, _REPO_ROOT)
+_VERCOR_ROOT = os.path.join(_REPO_ROOT, "vercor")
+sys.path.insert(0, os.path.join(_VERCOR_ROOT, "veros"))
+sys.path.insert(0, _VERCOR_ROOT)
 
 from datetime import datetime
 
