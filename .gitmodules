@@ -1,0 +1,3 @@
+[submodule "vercor"]
+	path = vercor
+	url = git@github.com:Etienne-Meunier/vercor.git
