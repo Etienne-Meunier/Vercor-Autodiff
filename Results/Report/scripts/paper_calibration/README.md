@@ -5,9 +5,6 @@ by differentiating a coupled ocean-atmosphere-land rollout end to end with JAX. 
 target is synthetic: the same model at known parameters, so the answer is known and
 the recovery can be checked.
 
-This directory reproduces the results of reports 22 (mixed-layer-depth observable) and
-23 (top-level temperature/salinity differences).
-
 ## Layout
 
 | file | role |
@@ -20,15 +17,8 @@ This directory reproduces the results of reports 22 (mixed-layer-depth observabl
 | `figures/optimization.py` | landscape with the descent paths, and the loss curves |
 | `figures/snapshot.py` | target density difference, and the loss per column before and after |
 
-Requirements: `vercor` with its `jcm` extra, `jax`, `optax`, `click`, `numpy`,
-`matplotlib`, and `cartopy` for the snapshot figure. If `vercor` is not installed,
-`model.py` falls back to the checkout at the root of this repository. Everything runs on CPU
-(`JAX_PLATFORMS=cpu`); a 10-day rollout takes about 25 s and a gradient about 130 s.
-
 ## Method
 
-The model is a chain of daily coupling steps. Both parameters enter Veros's TKE
-closure, which sets the vertical mixing that shapes the upper-ocean density profile.
 
 ```
 loss(c_k, c_eps):
@@ -36,10 +26,6 @@ loss(c_k, c_eps):
     field  <- mean over the last `average_days` states of observable(state)
     return sum over cells and channels of  weight * (field - target)^2
 ```
-
-The target is `field` evaluated once at the true parameters and then frozen. Cells
-where the observable is undefined are excluded, and the valid set comes from the
-target, so the loss domain does not move while the parameters do.
 
 ```
 calibrate(start, iterations):
@@ -54,25 +40,12 @@ calibrate(start, iterations):
         append (params, loss, gradient) to the trajectory
 ```
 
-One `jax.value_and_grad` call differentiates the whole coupled system; no adjoint is
-written by hand. Two details matter for reading the output:
 
-- **Segmented rollout.** `Coupler.run` returns only its final state, so averaging the
+**NB on Segmented rollout.** `Coupler.run` returns only its final state, so averaging the
   last three days needs three chained couplers, `[8, 1, 1]` for a 10-day rollout.
-  Chaining is function composition, so the gradient still crosses the whole rollout.
-- **Trajectory rows.** Row `k+1` holds the parameters produced *after* iteration `k`
-  together with the loss evaluated *before* it. The lowest-loss iterate's parameters
-  are therefore read from row `k`, not `k+1`.
+  Chaining is function composition, so the gradient still crosses the whole rollout. -> This is something we could improve if we run calibration on longer rollout / more often.
 
-The gradient clip is measured at each run's own start point rather than fixed, because
-an MLD loss is in m^2 and a T/S loss is variance-normalised; their gradient norms
-differ by orders of magnitude and one fixed threshold would either never fire or fire
-every step. Clipping is there because an unclipped run once produced a gradient ~200x
-its neighbours, which adam's momentum carried for some 25 iterations. The default
-factor of 1.2 is a round value above the start-point norm; it rarely binds, firing on
-a handful of the 200 iterations. Reports 22 and 23 used 1.2205, which was an earlier
-hand-picked threshold expressed as a multiple of that report's start-point norm --
-pass `--clip-factor 1.2205` to reproduce them exactly.
+**NB on gradient clipping.** We need to clip gradient as occasionaly they blow up (needs to be investigated), it is quite uncommon (couple of times across the 100s of optim step) but even one would break the optim so we clip.  
 
 ### Observables
 
