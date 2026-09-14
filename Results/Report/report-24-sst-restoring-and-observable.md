@@ -85,6 +85,22 @@ Final iterates, with each run's lowest-loss iterate in brackets:
 
 **The landscape did not predict any of this.** The restoring-off T/S scan has the shallowest basin and the closest spurious minima of the four, and it is the configuration whose descents work best. A 16x16 forward scan measures where the loss is low, not whether a gradient path reaches it; the two came apart here.
 
+## The fitted field, without restoring
+
+![snapshot](figures/report-24/tsdiff_avg_norestore/snapshot.png)
+
+Start 0 of the T/S, restoring-off configuration -- the run with the lowest final loss of the sixteen -- rolled out again at truth, at its initial guess and at its converged parameters, over the 2319 columns with a wet level -2. The left panel is the target's top-level potential-density difference `rho[-2] - rho[-1]`, averaged over days 8-10: the quantity report-23 showed the MLD to be a transform of, and which the four T/S channels resolve into their temperature and salinity parts. The other two map each column's contribution to the fitted loss, on a shared log scale.
+
+| | total loss | top 1% of columns |
+|---|---|---|
+| before (`c_k` = 0.05, `c_eps` = 0.40) | 1.5913e-3 | 72% of the loss |
+| after (`c_k` = 0.1005, `c_eps` = 0.7117) | **1.0462e-6** | 50% of the loss |
+| reduction | **1521x** | |
+
+The totals are the loss itself, recomputed from the saved fields, and they reproduce the descent's start-point and final losses to every digit.
+
+The picture matches [report-23](report-23-ts-differences-landscape-and-multistart.md)'s equivalent figure with restoring on (1268x, 75% before and 41% after): the same frontal columns dominate before calibration -- the Southern Ocean band at 40-60S, the Gulf Stream and Kuroshio separations, the Agulhas retroflection -- and the same faint equatorial Pacific and Indonesian strip survives after it. So the restoring changes how easily the descent reaches the minimum, not which columns carry the information or where the residual ends up.
+
 ## Endpoints are not reproducible at the level of a single run
 
 The restoring-on configurations repeat reports 22 and 23 with one knob changed, the clip factor, 1.2 instead of 1.2205, a 1.7% difference in a threshold that was arbitrary to begin with.
