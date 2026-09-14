@@ -1,11 +1,17 @@
 """Report 8 addendum: 2D loss-landscape grid scan (forward-only, no grad) at
 N_STEPS=20, as background contour for the (c_k, c_eps) parameter-space
-plot, with GD trajectories from 3 starting points overlaid: the existing
-report-8 run (c_k=0.05, c_eps=0.4, hardcoded from that run's log) plus two
-new optimizations run here.
+plot, with GD trajectories from 3 starting points overlaid.
 
-HOLD: do not launch until told to. ~2h total: grid scan (~36 forward
-evals) + 2 new 20-iteration optimizations.
+v2 (this file): grid finer 6x6 -> 12x12 (144 forward evals). All three
+starts (including the original c_k=0.05/c_eps=0.4 one, previously just
+hardcoded from the old fixed-lr run) now re-optimized fresh with the
+cosine-decay lr schedule + N_ITERS=30 recipe from
+fit_and_generate_figures.py v2, instead of the old fixed-lr/20-iter one.
+Checkpoints renamed (start_{i}_trajectory.npy) since the optimizer state
+is not compatible with the old extra_start_*.npy files from the v1 run.
+
+Meant for remote/GPU launch (grid + 3x30-iter cosine optimizations is
+several hours of coupled-model forward+backward passes).
 """
 
 import os
@@ -51,43 +57,20 @@ OUT_DIR = os.path.join(_REPO_ROOT, "Results", "Report", "figures", "report-8")
 os.makedirs(OUT_DIR, exist_ok=True)
 
 N_STEPS = 20
-N_ITERS = 20
-LEARNING_RATE = 2e-2
+N_ITERS = 30  # matches fit_and_generate_figures.py v2's cosine-decay recipe
+LEARNING_RATE = 2e-2  # peak lr of the cosine-decay schedule
 TRUE_C_K, TRUE_C_EPS = 0.1, 0.7
 
 # grid covers all three starting points and the true value
 CK_RANGE = (0.02, 0.18)
 CEPS_RANGE = (0.25, 0.95)
-GRID_N = 6
+GRID_N = 12  # finer than v1's 6x6
 
-# report-8's already-completed run (c_k=0.05, c_eps=0.4 start), hardcoded
-# from Results/Report/scripts/report-8/fit_and_generate_figures.py's log
-REPORT8_TRAJECTORY = [
-    (0.0500, 0.4000, None),
-    (0.0700, 0.3800, 4.629689e+01),
-    (0.0872, 0.3648, 1.874484e+01),
-    (0.1011, 0.3614, 4.778722e+00),
-    (0.1122, 0.3680, 2.812467e+00),
-    (0.1211, 0.3795, 6.913485e+00),
-    (0.1284, 0.3936, 1.125722e+01),
-    (0.1339, 0.4093, 1.646632e+01),
-    (0.1380, 0.4262, 2.064083e+01),
-    (0.1395, 0.4438, 2.364784e+01),
-    (0.1405, 0.4620, 2.424678e+01),
-    (0.1407, 0.4804, 2.481679e+01),
-    (0.1400, 0.4990, 2.446280e+01),
-    (0.1317, 0.5177, 2.377855e+01),
-    (0.1237, 0.5361, 1.666441e+01),
-    (0.1163, 0.5538, 1.021156e+01),
-    (0.1091, 0.5707, 7.347647e+00),
-    (0.1022, 0.5865, 2.888215e+00),
-    (0.0959, 0.6011, 8.773194e-01),
-    (0.0905, 0.6145, 9.867251e-01),
-    (0.0863, 0.6261, 2.747287e+00),
-]
-
-# two new starting points: opposite corner, and a third off-diagonal point
-EXTRA_STARTS = [
+# three starting points: the original report-8 start, opposite corner,
+# and a third off-diagonal point -- all re-run fresh with the cosine
+# schedule (v1 reused a hardcoded fixed-lr trajectory for the first one)
+STARTS = [
+    (0.05, 0.40),
     (0.15, 0.85),
     (0.03, 0.55),
 ]
@@ -184,7 +167,8 @@ def run_optimization(init_ck, init_ceps, checkpoint_path):
         traj = [(init_ck, init_ceps, None)]
 
     params = {"c_k": jnp.asarray(traj[-1][0]), "c_eps": jnp.asarray(traj[-1][1])}
-    optimizer = optax.adam(LEARNING_RATE)
+    schedule = optax.cosine_decay_schedule(init_value=LEARNING_RATE, decay_steps=N_ITERS, alpha=0.0)
+    optimizer = optax.adam(schedule)
     opt_state = optimizer.init(params)
     value_and_grad_fn = jax.value_and_grad(loss_fn)
     for iteration in range(len(traj) - 1, N_ITERS):
@@ -198,10 +182,10 @@ def run_optimization(init_ck, init_ceps, checkpoint_path):
     return traj
 
 
-all_trajectories = [REPORT8_TRAJECTORY]
-for idx, (start_ck, start_ceps) in enumerate(EXTRA_STARTS):
+all_trajectories = []
+for idx, (start_ck, start_ceps) in enumerate(STARTS):
     print(f"\nOptimizing from start (c_k={start_ck}, c_eps={start_ceps}) ...", flush=True)
-    ckpt_path = os.path.join(OUT_DIR, f"extra_start_{idx}_trajectory.npy")
+    ckpt_path = os.path.join(OUT_DIR, f"start_{idx}_trajectory.npy")
     all_trajectories.append(run_optimization(start_ck, start_ceps, ckpt_path))
 
 # --- figure: loss landscape + trajectories ---

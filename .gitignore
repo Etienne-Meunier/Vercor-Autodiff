@@ -1,0 +1,15 @@
+*.nc
+*.DS_STORE
+__py_cache__/
+*.py[cod]
+*$py.classi
+
+.ipynb_checkpoints
+*.ipynb_checkpoints
+.ipynb_checkpoints/
+
+.g5k_config
+
+# raw run data now lives in $STORE/VercorAd, not the repo (see run_forward.py/render.py)
+/Results/*.csv
+/Results/*.npz
