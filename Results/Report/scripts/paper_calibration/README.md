@@ -52,7 +52,7 @@ calibrate(start, iterations):
 `mld_avg` is the depth at which potential density first exceeds its value at the
 reference level by 0.03 kg/m^3, linearly interpolated between the two bracketing
 levels. The discrete level selection is kept off the gradient path and the
-interpolation's division is guarded, so degenerate columns cannot poison the gradient.
+interpolation's division is guarded, so degenerate columns cannot poison the gradient. -> Because the simulation is only 15levels deep it's not a super good evaluation of the MLD but still a good criterium to evaluate stratif, as an alternative we propose the other one below. 
 
 `tsdiff_avg` is four channels, `T[-2]-T[-1]`, `T[-3]-T[-1]`, `S[-2]-S[-1]` and
 `S[-3]-S[-1]`. On this 15-level grid the mixed-layer depth is a function of exactly
